@@ -1,0 +1,644 @@
+[
+  {
+    "Constant" : [
+
+    ],
+    "submodules" : [
+
+    ],
+    "Function" : [
+
+    ],
+    "Variable" : [
+      {
+        "doc" : "Absolute CLI path, or nil to try \/opt\/homebrew\/bin\/aerospace then \/usr\/local\/bin\/aerospace.",
+        "stripped_doc" : [
+          "Absolute CLI path, or nil to try \/opt\/homebrew\/bin\/aerospace then \/usr\/local\/bin\/aerospace."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Absolute CLI path, or nil to try \/opt\/homebrew\/bin\/aerospace then \/usr\/local\/bin\/aerospace.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.aerospacePath",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "aerospacePath",
+        "def" : "AeroSpaceSwipe.aerospacePath"
+      },
+      {
+        "doc" : "Average horizontal travel as a fraction of trackpad width. Default: 0.01.",
+        "stripped_doc" : [
+          "Average horizontal travel as a fraction of trackpad width. Default: 0.01."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Average horizontal travel as a fraction of trackpad width. Default: 0.01.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.threshold",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "threshold",
+        "def" : "AeroSpaceSwipe.threshold"
+      },
+      {
+        "doc" : "Minimum horizontal contribution from each of four fingers. Default: 0.002.",
+        "stripped_doc" : [
+          "Minimum horizontal contribution from each of four fingers. Default: 0.002."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Minimum horizontal contribution from each of four fingers. Default: 0.002.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.fingerThreshold",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "fingerThreshold",
+        "def" : "AeroSpaceSwipe.fingerThreshold"
+      },
+      {
+        "doc" : "Required ratio of horizontal to vertical displacement. Default: 1.5.",
+        "stripped_doc" : [
+          "Required ratio of horizontal to vertical displacement. Default: 1.5."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Required ratio of horizontal to vertical displacement. Default: 1.5.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.horizontalRatio",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "horizontalRatio",
+        "def" : "AeroSpaceSwipe.horizontalRatio"
+      },
+      {
+        "doc" : "Release input blocking after this many seconds without touch updates. Default: 0.5.",
+        "stripped_doc" : [
+          "Release input blocking after this many seconds without touch updates. Default: 0.5."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Release input blocking after this many seconds without touch updates. Default: 0.5.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.touchTimeout",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "touchTimeout",
+        "def" : "AeroSpaceSwipe.touchTimeout"
+      },
+      {
+        "doc" : "CLI timeout in seconds; pending commands are discarded on expiry. Default: 1.",
+        "stripped_doc" : [
+          "CLI timeout in seconds; pending commands are discarded on expiry. Default: 1."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "CLI timeout in seconds; pending commands are discarded on expiry. Default: 1.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.commandTimeout",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "commandTimeout",
+        "def" : "AeroSpaceSwipe.commandTimeout"
+      },
+      {
+        "doc" : "Also focus monitors when the pointer crosses displays, using a 250 ms poll. Default: false.\nThis setting does not change swipes: they always target the display under the pointer.",
+        "stripped_doc" : [
+          "Also focus monitors when the pointer crosses displays, using a 250 ms poll. Default: false.",
+          "This setting does not change swipes: they always target the display under the pointer."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Also focus monitors when the pointer crosses displays, using a 250 ms poll. Default: false.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.focusFollowsMouse",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "focusFollowsMouse",
+        "def" : "AeroSpaceSwipe.focusFollowsMouse"
+      },
+      {
+        "doc" : "Hammerspoon logger, initialized by init(), with default level warning.",
+        "stripped_doc" : [
+          "Hammerspoon logger, initialized by init(), with default level warning."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Hammerspoon logger, initialized by init(), with default level warning.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.logger",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "logger",
+        "def" : "AeroSpaceSwipe.logger"
+      }
+    ],
+    "stripped_doc" : [
+
+    ],
+    "desc" : "Requires AeroSpace with the eval command (tested with 0.21.3-Beta).",
+    "Deprecated" : [
+
+    ],
+    "type" : "Module",
+    "Constructor" : [
+
+    ],
+    "Field" : [
+
+    ],
+    "items" : [
+      {
+        "doc" : "Absolute CLI path, or nil to try \/opt\/homebrew\/bin\/aerospace then \/usr\/local\/bin\/aerospace.",
+        "stripped_doc" : [
+          "Absolute CLI path, or nil to try \/opt\/homebrew\/bin\/aerospace then \/usr\/local\/bin\/aerospace."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Absolute CLI path, or nil to try \/opt\/homebrew\/bin\/aerospace then \/usr\/local\/bin\/aerospace.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.aerospacePath",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "aerospacePath",
+        "def" : "AeroSpaceSwipe.aerospacePath"
+      },
+      {
+        "doc" : "CLI timeout in seconds; pending commands are discarded on expiry. Default: 1.",
+        "stripped_doc" : [
+          "CLI timeout in seconds; pending commands are discarded on expiry. Default: 1."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "CLI timeout in seconds; pending commands are discarded on expiry. Default: 1.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.commandTimeout",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "commandTimeout",
+        "def" : "AeroSpaceSwipe.commandTimeout"
+      },
+      {
+        "doc" : "Minimum horizontal contribution from each of four fingers. Default: 0.002.",
+        "stripped_doc" : [
+          "Minimum horizontal contribution from each of four fingers. Default: 0.002."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Minimum horizontal contribution from each of four fingers. Default: 0.002.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.fingerThreshold",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "fingerThreshold",
+        "def" : "AeroSpaceSwipe.fingerThreshold"
+      },
+      {
+        "doc" : "Also focus monitors when the pointer crosses displays, using a 250 ms poll. Default: false.\nThis setting does not change swipes: they always target the display under the pointer.",
+        "stripped_doc" : [
+          "Also focus monitors when the pointer crosses displays, using a 250 ms poll. Default: false.",
+          "This setting does not change swipes: they always target the display under the pointer."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Also focus monitors when the pointer crosses displays, using a 250 ms poll. Default: false.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.focusFollowsMouse",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "focusFollowsMouse",
+        "def" : "AeroSpaceSwipe.focusFollowsMouse"
+      },
+      {
+        "doc" : "Required ratio of horizontal to vertical displacement. Default: 1.5.",
+        "stripped_doc" : [
+          "Required ratio of horizontal to vertical displacement. Default: 1.5."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Required ratio of horizontal to vertical displacement. Default: 1.5.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.horizontalRatio",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "horizontalRatio",
+        "def" : "AeroSpaceSwipe.horizontalRatio"
+      },
+      {
+        "doc" : "Hammerspoon logger, initialized by init(), with default level warning.",
+        "stripped_doc" : [
+          "Hammerspoon logger, initialized by init(), with default level warning."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Hammerspoon logger, initialized by init(), with default level warning.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.logger",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "logger",
+        "def" : "AeroSpaceSwipe.logger"
+      },
+      {
+        "doc" : "Average horizontal travel as a fraction of trackpad width. Default: 0.01.",
+        "stripped_doc" : [
+          "Average horizontal travel as a fraction of trackpad width. Default: 0.01."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Average horizontal travel as a fraction of trackpad width. Default: 0.01.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.threshold",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "threshold",
+        "def" : "AeroSpaceSwipe.threshold"
+      },
+      {
+        "doc" : "Release input blocking after this many seconds without touch updates. Default: 0.5.",
+        "stripped_doc" : [
+          "Release input blocking after this many seconds without touch updates. Default: 0.5."
+        ],
+        "parameters" : [
+
+        ],
+        "desc" : "Release input blocking after this many seconds without touch updates. Default: 0.5.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe.touchTimeout",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "name" : "touchTimeout",
+        "def" : "AeroSpaceSwipe.touchTimeout"
+      },
+      {
+        "doc" : "Replace optional monitor-focus bindings; no keys are bound by default.\n\nParameters:\n * mapping - Table with any of focusMonitorLeft, focusMonitorRight, focusMonitorUp,\n   focusMonitorDown. Each value is { modifiers, key, message = optionalString }.\n\nReturns:\n * The Spoon object, or nil and an error string for an invalid mapping or hotkey failure.\n\nNotes:\n * Before start(), mappings are only stored. While running, they replace current bindings.\n * stop() deletes the hotkeys; start() recreates them. An empty mapping removes all bindings.",
+        "stripped_doc" : [
+          "Replace optional monitor-focus bindings; no keys are bound by default.",
+          ""
+        ],
+        "parameters" : [
+          " * mapping - Table with any of focusMonitorLeft, focusMonitorRight, focusMonitorUp,",
+          "   focusMonitorDown. Each value is { modifiers, key, message = optionalString }.",
+          ""
+        ],
+        "desc" : "Replace optional monitor-focus bindings; no keys are bound by default.",
+        "notes" : [
+          " * Before start(), mappings are only stored. While running, they replace current bindings.",
+          " * stop() deletes the hotkeys; start() recreates them. An empty mapping removes all bindings."
+        ],
+        "signature" : "AeroSpaceSwipe:bindHotkeys(mapping) -> self | nil, error",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object, or nil and an error string for an invalid mapping or hotkey failure.",
+          ""
+        ],
+        "name" : "bindHotkeys",
+        "def" : "AeroSpaceSwipe:bindHotkeys(mapping) -> self | nil, error"
+      },
+      {
+        "doc" : "Queue monitor focus through the same dispatcher as workspace swipes.\n\nParameters:\n * direction - One of left, right, up, or down.\n\nReturns:\n * The Spoon object, or nil and an error string if stopped or given an invalid direction.",
+        "stripped_doc" : [
+          "Queue monitor focus through the same dispatcher as workspace swipes.",
+          ""
+        ],
+        "parameters" : [
+          " * direction - One of left, right, up, or down.",
+          ""
+        ],
+        "desc" : "Queue monitor focus through the same dispatcher as workspace swipes.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe:focusMonitor(direction) -> self | nil, error",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object, or nil and an error string if stopped or given an invalid direction."
+        ],
+        "name" : "focusMonitor",
+        "def" : "AeroSpaceSwipe:focusMonitor(direction) -> self | nil, error"
+      },
+      {
+        "doc" : "Prepare the logger without activating timers, watchers, tasks, or hotkeys.\n\nParameters:\n * None\n\nReturns:\n * The Spoon object. Called automatically by hs.loadSpoon().",
+        "stripped_doc" : [
+          "Prepare the logger without activating timers, watchers, tasks, or hotkeys.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Prepare the logger without activating timers, watchers, tasks, or hotkeys.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe:init() -> self",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object. Called automatically by hs.loadSpoon()."
+        ],
+        "name" : "init",
+        "def" : "AeroSpaceSwipe:init() -> self"
+      },
+      {
+        "doc" : "Validate configuration and start recognition and configured hotkeys.\n\nParameters:\n * None\n\nReturns:\n * The Spoon object on success; nil and an error string on failure.\n\nNotes:\n * Idempotent while running. Configuration changes take effect after stop():start().\n * Each new run resets diagnostic counters. No commands run merely because start() is called.",
+        "stripped_doc" : [
+          "Validate configuration and start recognition and configured hotkeys.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Validate configuration and start recognition and configured hotkeys.",
+        "notes" : [
+          " * Idempotent while running. Configuration changes take effect after stop():start().",
+          " * Each new run resets diagnostic counters. No commands run merely because start() is called."
+        ],
+        "signature" : "AeroSpaceSwipe:start() -> self | nil, error",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object on success; nil and an error string on failure.",
+          ""
+        ],
+        "name" : "start",
+        "def" : "AeroSpaceSwipe:start() -> self | nil, error"
+      },
+      {
+        "doc" : "Return a snapshot of listener state, command activity, counters, and recent CLI durations.\n\nParameters:\n * None\n\nReturns:\n * A table containing running, gestureActive, momentumBlocked, gestureTapEnabled,\n   scrollTapEnabled, pointerTapEnabled, commandBusy, queuedCommands, recognized,\n   switched, errors, timedOut, lastError, recentCommandMs, aerospacePath, and boundHotkeys.\n\nNotes:\n * Counters and the last 20 command durations are retained after stop(), until the next start().\n * Durations exclude queueing, recognition, and display rendering. Switched counts successful\n   commands, including a single-workspace wrap that produces no visible change.",
+        "stripped_doc" : [
+          "Return a snapshot of listener state, command activity, counters, and recent CLI durations.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Return a snapshot of listener state, command activity, counters, and recent CLI durations.",
+        "notes" : [
+          " * Counters and the last 20 command durations are retained after stop(), until the next start().",
+          " * Durations exclude queueing, recognition, and display rendering. Switched counts successful",
+          "   commands, including a single-workspace wrap that produces no visible change."
+        ],
+        "signature" : "AeroSpaceSwipe:status() -> table",
+        "type" : "Method",
+        "returns" : [
+          " * A table containing running, gestureActive, momentumBlocked, gestureTapEnabled,",
+          "   scrollTapEnabled, pointerTapEnabled, commandBusy, queuedCommands, recognized,",
+          "   switched, errors, timedOut, lastError, recentCommandMs, aerospacePath, and boundHotkeys.",
+          ""
+        ],
+        "name" : "status",
+        "def" : "AeroSpaceSwipe:status() -> table"
+      },
+      {
+        "doc" : "Stop listeners, timers and hotkeys, discard queued commands, and terminate the active CLI task.\n\nParameters:\n * None\n\nReturns:\n * The Spoon object. Safe to call repeatedly or before start().",
+        "stripped_doc" : [
+          "Stop listeners, timers and hotkeys, discard queued commands, and terminate the active CLI task.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Stop listeners, timers and hotkeys, discard queued commands, and terminate the active CLI task.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe:stop() -> self",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object. Safe to call repeatedly or before start()."
+        ],
+        "name" : "stop",
+        "def" : "AeroSpaceSwipe:stop() -> self"
+      }
+    ],
+    "Command" : [
+
+    ],
+    "doc" : "Four-finger horizontal workspace switching on the display under the pointer.\nRequires AeroSpace with the eval command (tested with 0.21.3-Beta).\nConfigure before start(); loading the Spoon does not intercept input or bind keys.",
+    "Method" : [
+      {
+        "doc" : "Prepare the logger without activating timers, watchers, tasks, or hotkeys.\n\nParameters:\n * None\n\nReturns:\n * The Spoon object. Called automatically by hs.loadSpoon().",
+        "stripped_doc" : [
+          "Prepare the logger without activating timers, watchers, tasks, or hotkeys.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Prepare the logger without activating timers, watchers, tasks, or hotkeys.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe:init() -> self",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object. Called automatically by hs.loadSpoon()."
+        ],
+        "name" : "init",
+        "def" : "AeroSpaceSwipe:init() -> self"
+      },
+      {
+        "doc" : "Validate configuration and start recognition and configured hotkeys.\n\nParameters:\n * None\n\nReturns:\n * The Spoon object on success; nil and an error string on failure.\n\nNotes:\n * Idempotent while running. Configuration changes take effect after stop():start().\n * Each new run resets diagnostic counters. No commands run merely because start() is called.",
+        "stripped_doc" : [
+          "Validate configuration and start recognition and configured hotkeys.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Validate configuration and start recognition and configured hotkeys.",
+        "notes" : [
+          " * Idempotent while running. Configuration changes take effect after stop():start().",
+          " * Each new run resets diagnostic counters. No commands run merely because start() is called."
+        ],
+        "signature" : "AeroSpaceSwipe:start() -> self | nil, error",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object on success; nil and an error string on failure.",
+          ""
+        ],
+        "name" : "start",
+        "def" : "AeroSpaceSwipe:start() -> self | nil, error"
+      },
+      {
+        "doc" : "Stop listeners, timers and hotkeys, discard queued commands, and terminate the active CLI task.\n\nParameters:\n * None\n\nReturns:\n * The Spoon object. Safe to call repeatedly or before start().",
+        "stripped_doc" : [
+          "Stop listeners, timers and hotkeys, discard queued commands, and terminate the active CLI task.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Stop listeners, timers and hotkeys, discard queued commands, and terminate the active CLI task.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe:stop() -> self",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object. Safe to call repeatedly or before start()."
+        ],
+        "name" : "stop",
+        "def" : "AeroSpaceSwipe:stop() -> self"
+      },
+      {
+        "doc" : "Return a snapshot of listener state, command activity, counters, and recent CLI durations.\n\nParameters:\n * None\n\nReturns:\n * A table containing running, gestureActive, momentumBlocked, gestureTapEnabled,\n   scrollTapEnabled, pointerTapEnabled, commandBusy, queuedCommands, recognized,\n   switched, errors, timedOut, lastError, recentCommandMs, aerospacePath, and boundHotkeys.\n\nNotes:\n * Counters and the last 20 command durations are retained after stop(), until the next start().\n * Durations exclude queueing, recognition, and display rendering. Switched counts successful\n   commands, including a single-workspace wrap that produces no visible change.",
+        "stripped_doc" : [
+          "Return a snapshot of listener state, command activity, counters, and recent CLI durations.",
+          ""
+        ],
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "desc" : "Return a snapshot of listener state, command activity, counters, and recent CLI durations.",
+        "notes" : [
+          " * Counters and the last 20 command durations are retained after stop(), until the next start().",
+          " * Durations exclude queueing, recognition, and display rendering. Switched counts successful",
+          "   commands, including a single-workspace wrap that produces no visible change."
+        ],
+        "signature" : "AeroSpaceSwipe:status() -> table",
+        "type" : "Method",
+        "returns" : [
+          " * A table containing running, gestureActive, momentumBlocked, gestureTapEnabled,",
+          "   scrollTapEnabled, pointerTapEnabled, commandBusy, queuedCommands, recognized,",
+          "   switched, errors, timedOut, lastError, recentCommandMs, aerospacePath, and boundHotkeys.",
+          ""
+        ],
+        "name" : "status",
+        "def" : "AeroSpaceSwipe:status() -> table"
+      },
+      {
+        "doc" : "Queue monitor focus through the same dispatcher as workspace swipes.\n\nParameters:\n * direction - One of left, right, up, or down.\n\nReturns:\n * The Spoon object, or nil and an error string if stopped or given an invalid direction.",
+        "stripped_doc" : [
+          "Queue monitor focus through the same dispatcher as workspace swipes.",
+          ""
+        ],
+        "parameters" : [
+          " * direction - One of left, right, up, or down.",
+          ""
+        ],
+        "desc" : "Queue monitor focus through the same dispatcher as workspace swipes.",
+        "notes" : [
+
+        ],
+        "signature" : "AeroSpaceSwipe:focusMonitor(direction) -> self | nil, error",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object, or nil and an error string if stopped or given an invalid direction."
+        ],
+        "name" : "focusMonitor",
+        "def" : "AeroSpaceSwipe:focusMonitor(direction) -> self | nil, error"
+      },
+      {
+        "doc" : "Replace optional monitor-focus bindings; no keys are bound by default.\n\nParameters:\n * mapping - Table with any of focusMonitorLeft, focusMonitorRight, focusMonitorUp,\n   focusMonitorDown. Each value is { modifiers, key, message = optionalString }.\n\nReturns:\n * The Spoon object, or nil and an error string for an invalid mapping or hotkey failure.\n\nNotes:\n * Before start(), mappings are only stored. While running, they replace current bindings.\n * stop() deletes the hotkeys; start() recreates them. An empty mapping removes all bindings.",
+        "stripped_doc" : [
+          "Replace optional monitor-focus bindings; no keys are bound by default.",
+          ""
+        ],
+        "parameters" : [
+          " * mapping - Table with any of focusMonitorLeft, focusMonitorRight, focusMonitorUp,",
+          "   focusMonitorDown. Each value is { modifiers, key, message = optionalString }.",
+          ""
+        ],
+        "desc" : "Replace optional monitor-focus bindings; no keys are bound by default.",
+        "notes" : [
+          " * Before start(), mappings are only stored. While running, they replace current bindings.",
+          " * stop() deletes the hotkeys; start() recreates them. An empty mapping removes all bindings."
+        ],
+        "signature" : "AeroSpaceSwipe:bindHotkeys(mapping) -> self | nil, error",
+        "type" : "Method",
+        "returns" : [
+          " * The Spoon object, or nil and an error string for an invalid mapping or hotkey failure.",
+          ""
+        ],
+        "name" : "bindHotkeys",
+        "def" : "AeroSpaceSwipe:bindHotkeys(mapping) -> self | nil, error"
+      }
+    ],
+    "name" : "AeroSpaceSwipe"
+  }
+]
