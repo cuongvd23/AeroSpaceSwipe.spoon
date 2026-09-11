@@ -1,0 +1,76 @@
+name: SpoonInstall
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build package
+        run: python3 scripts/package.py
+      - name: Validate archive
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          prefix = "AeroSpaceSwipe.spoon/"
+          files = {"init.lua": "init.lua", "docs.json": "docs/docs.json",
+                   "README.md": "README.md", "LICENSE": "LICENSE"}
+          with ZipFile("Spoons/AeroSpaceSwipe.spoon.zip") as archive:
+              assert sorted(archive.namelist()) == sorted([prefix] + [prefix + name for name in files])
+              assert archive.getinfo(prefix).is_dir()
+              assert archive.testzip() is None
+              for name, source in files.items():
+                  assert archive.read(prefix + name) == Path(source).read_bytes(), name
+          print("Archive layout, integrity, and contents verified.")
+          PY
+      - name: Check reproducibility
+        run: |
+          python3 scripts/package.py --output "$RUNNER_TEMP/AeroSpaceSwipe.spoon.zip"
+          cmp Spoons/AeroSpaceSwipe.spoon.zip "$RUNNER_TEMP/AeroSpaceSwipe.spoon.zip"
+
+  publish:
+    needs: validate
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: spooninstall-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - name: Build validated revision
+        run: python3 scripts/package.py
+      - name: Publish changed package
+        run: |
+          git fetch origin master
+          if [ "$(git rev-parse origin/master)" != "$GITHUB_SHA" ]; then
+            echo "Skipping publication: master has moved beyond the validated revision."
+            exit 0
+          fi
+
+          git add -- Spoons/AeroSpaceSwipe.spoon.zip
+          if git diff --cached --quiet; then
+            echo "Package is already current."
+            exit 0
+          fi
+
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "Update SpoonInstall package for $GITHUB_SHA"
+          # A concurrent master update makes this fast-forward-only push fail.
+          # Never rebase or force-push a package built from an older revision.
+          git push origin HEAD:refs/heads/master

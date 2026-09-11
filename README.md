@@ -3,17 +3,41 @@
 Four-finger left/right swipes select the next/previous AeroSpace workspace on the
 display under the pointer, wrapping once per gesture.
 
-Copy the entire `.spoon` directory into `~/.hammerspoon/Spoons/`. Requires
-Hammerspoon Accessibility permission and AeroSpace's `eval` command; tested with
+Requires Hammerspoon Accessibility permission and AeroSpace's `eval` command; tested with
 Hammerspoon 1.1.1 and AeroSpace 0.21.3-Beta. Disable the native macOS four-finger
 horizontal workspace gesture. Connected displays must have distinct names.
 
+## Installation
+
+Install [SpoonInstall](https://www.hammerspoon.org/Spoons/SpoonInstall.html) first,
+then add this to `~/.hammerspoon/init.lua`:
+
 ```lua
-hs.loadSpoon("AeroSpaceSwipe")
-spoon.AeroSpaceSwipe.focusFollowsMouse = true -- Optional monitor focus on pointer crossings.
-local ok, err = spoon.AeroSpaceSwipe:start()
-if not ok then hs.alert.show(err) end
+hs.loadSpoon("SpoonInstall")
+spoon.SpoonInstall.repos.aerospaceSwipe = {
+    url = "https://github.com/cuongvd23/AeroSpaceSwipe.spoon",
+    desc = "AeroSpaceSwipe",
+    branch = "master",
+}
+
+spoon.SpoonInstall:andUse("AeroSpaceSwipe", {
+    repo = "aerospaceSwipe",
+    fn = function(s)
+        local ok, err = s:start()
+        if not ok then hs.alert.show(err) end
+    end,
+})
 ```
+
+Reload Hammerspoon to activate. Add optional settings and bindings through `config`
+and `hotkeys` in `andUse()`.
+
+For manual installation, download [AeroSpaceSwipe.spoon.zip](https://github.com/cuongvd23/AeroSpaceSwipe.spoon/raw/master/Spoons/AeroSpaceSwipe.spoon.zip),
+extract it, and copy the `AeroSpaceSwipe.spoon` folder into `~/.hammerspoon/Spoons/`. Add
+`hs.loadSpoon("AeroSpaceSwipe"):start()` to your Hammerspoon configuration.
+
+`andUse()` does not update installed Spoons. To update, reinstall the ZIP and reload
+Hammerspoon.
 
 ## Settings
 
@@ -57,12 +81,16 @@ spoon.AeroSpaceSwipe:bindHotkeys({
 No bindings are installed by default. Add `message = "..."` to a binding for an
 alert. Keep fn/right-control-specific detection in your config and call `focusMonitor()`.
 
-## Diagnostics and tests
+## Local diagnostics and tests
 
 ```sh
 hs -c 'return hs.inspect(spoon.AeroSpaceSwipe:status())'
-nvim --headless -u NONE -i NONE -l /path/to/AeroSpaceSwipe.spoon/tests/run.lua
+lua5.4 tests/run.lua
 ```
+
+Run the Lua suite locally from the source checkout before pushing runtime changes.
+Neovim can run it if standalone Lua is unavailable:
+`nvim --headless -u NONE -i NONE -l tests/run.lua`.
 
 `recognized` counts accepted gestures; `switched` counts successful CLI commands,
 including invisible single-workspace wraps. `recentCommandMs` holds the last 20
@@ -73,4 +101,4 @@ The isolated tests use fake input, timers, and tasks. Check physical swipes on b
 displays, after pointer crossings and sleep/wake, plus browser history, two-finger
 scrolling with resting palms, and three-finger dragging.
 
-API help is bundled in `docs.json`. Code and tests are MIT-licensed.
+Code and tests are MIT-licensed.
