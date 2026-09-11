@@ -4,7 +4,7 @@ function ControllerModule.newRecognizer(options)
 	options = options or {}
 	local recognizer = {}
 	function recognizer:reset()
-		self.origins, self.contacts, self.latched = nil, nil, false
+		self.origins, self.latched = nil, false
 	end
 
 	function recognizer:expire()
@@ -16,14 +16,11 @@ function ControllerModule.newRecognizer(options)
 		if not touches then
 			return nil, false
 		end
-		local active, continuing, cancelled = {}, false, false
+		local active, cancelled = {}, false
 		for _, touch in ipairs(touches) do
 			if touch.type == "indirect" and touch.identity and touch.normalizedPosition then
 				if touch.touching then
 					active[#active + 1] = touch
-					if self.contacts and self.contacts[touch.identity] and touch.phase ~= "began" then
-						continuing = true
-					end
 				elseif touch.phase == "cancelled" then
 					cancelled = true
 				end
@@ -34,34 +31,27 @@ function ControllerModule.newRecognizer(options)
 			return nil, true
 		end
 		if cancelled then
-			self.origins, self.contacts, self.latched = nil, {}, true
-			for _, touch in ipairs(active) do
-				self.contacts[touch.identity] = true
-			end
+			self.origins, self.latched = nil, true
 			return nil, true
 		end
-		local released = self.latched and not continuing
-		if released then
-			self:reset()
-		end
+		-- Only a full release rearms recognition, even if touch IDs or phases change.
 		if self.latched then
 			return nil, false
 		end
 		if #active ~= 4 then
 			self.origins = nil
-			return nil, released
+			return nil, false
 		end
 		local sameContacts = self.origins ~= nil
 		for _, touch in ipairs(active) do
 			sameContacts = sameContacts and self.origins[touch.identity] ~= nil and touch.phase ~= "began"
 		end
 		if not sameContacts then
-			self.origins, self.contacts = {}, {}
+			self.origins = {}
 			for _, touch in ipairs(active) do
 				self.origins[touch.identity] = { x = touch.normalizedPosition.x, y = touch.normalizedPosition.y }
-				self.contacts[touch.identity] = true
 			end
-			return nil, released
+			return nil, false
 		end
 		local dx, dy, left, right = 0, 0, true, true
 		local minimumFingerTravel = options.fingerThreshold or 0.002
@@ -78,9 +68,9 @@ function ControllerModule.newRecognizer(options)
 			and (left or right)
 		then
 			self.latched = true
-			return left and "left" or "right", released
+			return left and "left" or "right", false
 		end
-		return nil, released
+		return nil, false
 	end
 
 	recognizer:reset()
