@@ -1,10 +1,19 @@
 local ControllerModule = {}
+local releaseConfirmationDelay = 0.05
 
 function ControllerModule.newRecognizer(options)
 	options = options or {}
 	local recognizer = {}
 	function recognizer:reset()
-		self.origins, self.latched = nil, false
+		self.origins, self.latched, self.releasePending = nil, false, false
+	end
+
+	function recognizer:confirmRelease()
+		if not self.releasePending then
+			return false
+		end
+		self:reset()
+		return true
 	end
 
 	function recognizer:expire()
@@ -27,9 +36,11 @@ function ControllerModule.newRecognizer(options)
 			end
 		end
 		if #active == 0 then
-			self:reset()
-			return nil, true
+			-- Empty frames can occur between movements from the same fingers.
+			self.releasePending = true
+			return nil, false
 		end
+		self.releasePending = false
 		if cancelled then
 			self.origins, self.latched = nil, true
 			return nil, true
@@ -135,6 +146,11 @@ function ControllerModule.new(options, runtime)
 	self.pointerTap = runtime.eventtap.new({ types.mouseMoved, types.leftMouseDragged }, function()
 		return self.swipeActive == true
 	end)
+	self.releaseTimeout = oneShot(runtime.timer, releaseConfirmationDelay, function()
+		if self.recognizer:confirmRelease() then
+			self:releaseInput(self.swipeActive or self.blockMomentum)
+		end
+	end)
 	self.touchTimeout = oneShot(runtime.timer, options.touchTimeout or 0.5, function()
 		self.recognizer:expire()
 		self:releaseInput(false)
@@ -200,6 +216,7 @@ function Controller:handleSleepWake(event)
 	end
 	self:cancelCommands()
 	self:releaseInput(false)
+	self.releaseTimeout:stop()
 	self.recognizer:reset()
 	self.lastScreen = nil
 	self.monitorTimer:stop()
@@ -306,7 +323,15 @@ function Controller:focusMonitor(direction)
 end
 
 function Controller:handleTouches(touches)
+	local wasReleasePending = self.recognizer.releasePending
 	local direction, released = self.recognizer:update(touches)
+	if self.recognizer.releasePending then
+		if not wasReleasePending then
+			self.releaseTimeout:start()
+		end
+	else
+		self.releaseTimeout:stop()
+	end
 	if released then
 		self:releaseInput(self.swipeActive or self.blockMomentum)
 	end
@@ -365,6 +390,7 @@ function Controller:start()
 		return self
 	end
 	self.running = true
+	self.releaseTimeout:stop()
 	self.recognizer:reset()
 	self.lastScreen = self.runtime.mouse.getCurrentScreen()
 	self.gestureTap:start()
@@ -380,6 +406,7 @@ function Controller:stop()
 	self.running = false
 	self:cancelCommands()
 	self:releaseInput(false)
+	self.releaseTimeout:stop()
 	self.recognizer:reset()
 	self.gestureTap:stop()
 	self.scrollTap:stop()
