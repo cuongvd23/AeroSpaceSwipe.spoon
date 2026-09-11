@@ -1,7 +1,7 @@
 -- Run with: nvim --headless -u NONE -i NONE -l /path/to/AeroSpaceSwipe.spoon/tests/run.lua
 local testPath = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
 local spoonPath = testPath .. "../"
-local swipe = dofile(spoonPath .. "controller.lua")
+local swipe = dofile(spoonPath .. "init.lua")._controllerModule
 local passed = 0
 local function equal(actual, expected, message)
 	assert(
@@ -545,11 +545,6 @@ local function spoonFixture()
 	f.runtime.fs = {
 		attributes = function(path)
 			return f.files[path]
-		end,
-	}
-	f.runtime.spoons = {
-		resourcePath = function(name)
-			return spoonPath .. name
 		end,
 	}
 	f.runtime.hotkey = {
