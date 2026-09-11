@@ -2,6 +2,8 @@
 
 Four-finger left/right swipes select the next/previous AeroSpace workspace on the
 display under the pointer, wrapping once per gesture.
+Lift all fingers before swiping again; continued movement or pauses while touching
+the trackpad do not trigger another switch.
 
 Requires Hammerspoon Accessibility permission and AeroSpace's `eval` command; tested with
 Hammerspoon 1.1.1 and AeroSpace 0.21.3-Beta. Disable the native macOS four-finger
