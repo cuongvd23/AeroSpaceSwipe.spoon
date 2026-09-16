@@ -152,6 +152,22 @@
         "def" : "AeroSpaceSwipe.focusFollowsMouse"
       },
       {
+        "doc": "Focus the window under the pointer within the focused workspace, checking at most every 100 ms while moving. Default: false.\nPauses during swipes, momentum, mouse-button presses, and monitor/workspace commands. Does not enable monitor crossings.\nUses aerospacePath and commandTimeout; failures appear in errors and lastError. Keep AeroSpace native focus-follows-mouse disabled.",
+        "stripped_doc": [
+          "Focus the window under the pointer within the focused workspace, checking at most every 100 ms while moving. Default: false.",
+          "Pauses during swipes, momentum, mouse-button presses, and monitor/workspace commands. Does not enable monitor crossings.",
+          "Uses aerospacePath and commandTimeout; failures appear in errors and lastError. Keep AeroSpace native focus-follows-mouse disabled."
+        ],
+        "parameters": [],
+        "desc": "Focus the window under the pointer within the focused workspace, checking at most every 100 ms while moving. Default: false.",
+        "notes": [],
+        "signature": "AeroSpaceSwipe.windowFocusFollowsMouse",
+        "type": "Variable",
+        "returns": [],
+        "name": "windowFocusFollowsMouse",
+        "def": "AeroSpaceSwipe.windowFocusFollowsMouse"
+      },
+      {
         "doc" : "Hammerspoon logger, initialized by init(), with default level warning.",
         "stripped_doc" : [
           "Hammerspoon logger, initialized by init(), with default level warning."
@@ -267,6 +283,22 @@
         ],
         "name" : "focusFollowsMouse",
         "def" : "AeroSpaceSwipe.focusFollowsMouse"
+      },
+      {
+        "doc": "Focus the window under the pointer within the focused workspace, checking at most every 100 ms while moving. Default: false.\nPauses during swipes, momentum, mouse-button presses, and monitor/workspace commands. Does not enable monitor crossings.\nUses aerospacePath and commandTimeout; failures appear in errors and lastError. Keep AeroSpace native focus-follows-mouse disabled.",
+        "stripped_doc": [
+          "Focus the window under the pointer within the focused workspace, checking at most every 100 ms while moving. Default: false.",
+          "Pauses during swipes, momentum, mouse-button presses, and monitor/workspace commands. Does not enable monitor crossings.",
+          "Uses aerospacePath and commandTimeout; failures appear in errors and lastError. Keep AeroSpace native focus-follows-mouse disabled."
+        ],
+        "parameters": [],
+        "desc": "Focus the window under the pointer within the focused workspace, checking at most every 100 ms while moving. Default: false.",
+        "notes": [],
+        "signature": "AeroSpaceSwipe.windowFocusFollowsMouse",
+        "type": "Variable",
+        "returns": [],
+        "name": "windowFocusFollowsMouse",
+        "def": "AeroSpaceSwipe.windowFocusFollowsMouse"
       },
       {
         "doc" : "Required ratio of horizontal to vertical displacement. Default: 1.5.",

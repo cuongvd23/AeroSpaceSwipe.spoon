@@ -313,8 +313,8 @@ local function fixture(noStart)
 			end,
 		})
 	end
-	function f:finish(index, code)
-		self.tasks[index].callback(code or 0, "", code and "test error" or "")
+	function f:finish(index, code, output)
+		self.tasks[index].callback(code or 0, output or "", code and "test error" or "")
 	end
 	f.runtime = runtime
 	if not noStart then
@@ -917,4 +917,194 @@ test("status retains an isolated snapshot after stop and resets on the next run"
 	equal(#s:status().recentCommandMs, 0)
 end)
 
+local function windowFocusFixture()
+	local f, s = spoonFixture()
+	f.screenA.id = function()
+		return 1
+	end
+	f.screenA.frame = function()
+		return { x = 0, y = 0, w = 200, h = 100 }
+	end
+	f.screenB.id = function()
+		return 2
+	end
+	f.focused, f.point = 1, { x = 150, y = 50 }
+	f.windows = {}
+	for i = 1, 2 do
+		local id = i
+		f.windows[i] = {
+			id = function()
+				return id
+			end,
+			screen = function()
+				return f.screenA
+			end,
+			frame = function()
+				return { x = (id - 1) * 100, y = 0, w = 100, h = 100 }
+			end,
+			isStandard = function()
+				return true
+			end,
+			focus = function()
+				f.focused = id
+			end,
+		}
+	end
+	f.runtime.mouse.absolutePosition = function()
+		return f.point
+	end
+	f.runtime.eventtap.checkMouseButtons = function()
+		return {}
+	end
+	f.runtime.window = {
+		focusedWindow = function()
+			return f.windows[f.focused]
+		end,
+		orderedWindows = function()
+			return f.windows
+		end,
+	}
+	function f:move()
+		self.taps[5].callback()
+	end
+	s.windowFocusFollowsMouse = true
+	s:start()
+	return f, s
+end
+
+test("window hover is opt-in and rejects non-boolean settings before startup", function()
+	local f, s = spoonFixture()
+	equal(s.windowFocusFollowsMouse, false)
+	equal(s:status().hoverTapEnabled, false)
+	s.windowFocusFollowsMouse = "true"
+	equal(s:start(), nil)
+	equal(#f.timers, 0)
+	s.windowFocusFollowsMouse = false
+	s:start()
+	equal(s:status().hoverTapEnabled, false)
+end)
+
+test("window hover works without monitor focus enabled", function()
+	local f, s = windowFocusFixture()
+	equal(s.focusFollowsMouse, false)
+	equal(s:status().hoverTapEnabled, true)
+	f:move()
+	f:advance(0.1)
+	equal(f.tasks[1].args[1], "list-windows")
+	f:finish(1, 0, "1\n2\n")
+	equal(f.focused, 2)
+end)
+
+test("monitor commands immediately cancel window hover queries", function()
+	local f, s = windowFocusFixture()
+	f:move()
+	f:advance(0.1)
+	s:focusMonitor("right")
+	equal(f.tasks[1].terminated, true)
+	f:finish(1, 0, "1\n2\n")
+	equal(f.focused, 1)
+	f:advance(0)
+	equal(f.tasks[2].args[1], "focus-monitor")
+end)
+
+test("swipes cancel hover before dispatch and suppress it through momentum", function()
+	local f, s = windowFocusFixture()
+	f:move()
+	f:advance(0.1)
+	f:swipe()
+	equal(f.tasks[1].terminated, true)
+	f:finish(1, 0, "1\n2\n")
+	equal(f.focused, 1)
+	f:advance(0)
+	equal(f.tasks[2].args[1], "eval")
+	f:finish(2)
+	f:release()
+	f:move()
+	f:advance(0.1)
+	equal(#f.tasks, 2)
+	f:advance(0.5)
+	f:move()
+	f:advance(0.1)
+	f:finish(3, 0, "1\n2\n")
+	equal(f.focused, 2)
+	equal(s:status().errors, 0)
+end)
+
+test("sleep cancels hover and wake restores it", function()
+	local f, s = windowFocusFixture()
+	f:move()
+	f:advance(0.1)
+	f.wake(1)
+	equal(s:status().hoverTapEnabled, false)
+	equal(f.tasks[1].terminated, true)
+	f:finish(1, 0, "1\n2\n")
+	equal(f.focused, 1)
+	f.wake(4)
+	equal(s:status().hoverTapEnabled, true)
+	f:move()
+	f:advance(0.1)
+	f:finish(2, 0, "1\n2\n")
+	equal(f.focused, 2)
+end)
+
+test("stop cleans hover resources and restart applies the option", function()
+	local f, s = windowFocusFixture()
+	f:move()
+	f:advance(0.1)
+	s:stop()
+	equal(s:status().hoverTapEnabled, false)
+	equal(f.tasks[1].terminated, true)
+	for _, timer in ipairs(f.timers) do
+		equal(timer.due, nil)
+	end
+	f:finish(1, 0, "1\n2\n")
+	equal(f.focused, 1)
+	s.windowFocusFollowsMouse = false
+	s:start()
+	equal(s:status().hoverTapEnabled, false)
+	s.windowFocusFollowsMouse = true
+	s:stop():start()
+	equal(s:status().hoverTapEnabled, true)
+	f:move()
+	f:advance(0.1)
+	f:finish(2, 0, "1\n2\n")
+	equal(f.focused, 2)
+end)
+
+test("hover failures use Spoon diagnostics and recover after timeout", function()
+	local f, s = windowFocusFixture()
+	f:move()
+	f:advance(0.1)
+	f:advance(1)
+	equal(s:status().errors, 1)
+	assert(s:status().lastError:find("Hover query timed out", 1, true))
+	f:move()
+	f:advance(0.1)
+	f:finish(1, 0, "1\n2\n")
+	equal(f.focused, 1)
+	f:finish(2, 0, "1\n2\n")
+	equal(f.focused, 2)
+end)
+
+test("hover listener activation failure stops the Spoon", function()
+	local f, s = spoonFixture()
+	local newTap = f.runtime.eventtap.new
+	f.runtime.eventtap.new = function(events, callback)
+		local tap = newTap(events, callback)
+		if #events == 1 and events[1] == 5 then
+			tap.start = function()
+				return tap
+			end
+		end
+		return tap
+	end
+	s.windowFocusFollowsMouse = true
+	equal(s:start(), nil)
+	equal(s:status().running, false)
+	for _, timer in ipairs(f.timers) do
+		equal(timer.due, nil)
+	end
+end)
+
+passed = passed + dofile(testPath .. "hover_focus.lua")
 print("Passed " .. passed .. " tests")

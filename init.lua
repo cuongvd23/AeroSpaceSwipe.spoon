@@ -119,6 +119,121 @@ local function oneShot(timers, delay, callback)
 	}
 end
 
+-- Construct without starting so the controller owns the entire listener lifecycle.
+function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
+	local generation, task, active, pending = 0, nil, false, false
+	local cancel, timeout
+	local function blocked()
+		return not active or isBlocked() or next(runtime.eventtap.checkMouseButtons()) ~= nil
+	end
+	local timer = oneShot(runtime.timer, 0.1, function()
+		pending = false
+		if blocked() then
+			return
+		end
+		local focused = runtime.window.focusedWindow()
+		local screen = runtime.mouse.getCurrentScreen()
+		local focusedScreen = focused and focused:screen()
+		if not focusedScreen or not screen or focusedScreen:id() ~= screen:id() then
+			return -- Monitor crossings belong to focusFollowsMouse.
+		end
+		local requestGeneration, focusedID = generation, focused:id()
+		task = runtime.task.new(options.aerospacePath, function(code, output, stderr)
+			if requestGeneration ~= generation then
+				return
+			end
+			task = nil
+			timeout:stop()
+			if code ~= 0 then
+				onError("Hover query failed (" .. tostring(code) .. "): " .. (stderr or ""))
+				return
+			end
+			local current = runtime.window.focusedWindow()
+			local point = runtime.mouse.absolutePosition()
+			local pointerScreen = runtime.mouse.getCurrentScreen()
+			if
+				blocked()
+				or not current
+				or current:id() ~= focusedID
+				or not pointerScreen
+				or pointerScreen:id() ~= screen:id()
+			then
+				return
+			end
+			local allowed = {}
+			for id in output:gmatch("%d+") do
+				allowed[tonumber(id)] = true
+			end
+			local function contains(frame)
+				return point.x >= frame.x
+					and point.x < frame.x + frame.w
+					and point.y >= frame.y
+					and point.y < frame.y + frame.h
+			end
+			if not contains(screen:frame()) then
+				return -- Leave the menu bar and Dock alone.
+			end
+			for _, window in ipairs(runtime.window.orderedWindows()) do
+				if contains(window:frame()) then
+					if allowed[window:id()] and window:isStandard() and window:id() ~= focusedID then
+						window:focus()
+					end
+					return -- Never focus through a covering window or dialog.
+				end
+			end
+		end, { "list-windows", "--workspace", "focused", "--format", "%{window-id}" })
+		if not task or not task:start() then
+			task = nil
+			onError("Unable to start hover query")
+		elseif task then
+			timeout:start()
+		end
+	end)
+
+	cancel = function()
+		generation = generation + 1
+		pending = false
+		timer:stop()
+		timeout:stop()
+		local previous = task
+		task = nil
+		if previous then
+			previous:terminate()
+		end
+	end
+	timeout = oneShot(runtime.timer, options.commandTimeout, function()
+		cancel()
+		onError("Hover query timed out")
+	end)
+	local tap = runtime.eventtap.new({ runtime.eventtap.event.types.mouseMoved }, function()
+		if blocked() then
+			cancel()
+		elseif not task and not pending then
+			-- Throttle checks so focus can change while the pointer is still moving.
+			pending = true
+			timer:start()
+		end
+		return false
+	end)
+	return {
+		start = function(self)
+			active = true
+			tap:start()
+			return self
+		end,
+		stop = function(self)
+			active = false
+			cancel()
+			tap:stop()
+			return self
+		end,
+		cancel = cancel,
+		isEnabled = function()
+			return tap:isEnabled()
+		end,
+	}
+end
+
 function ControllerModule.new(options, runtime)
 	local self = setmetatable({
 		options = options,
@@ -172,6 +287,17 @@ function ControllerModule.new(options, runtime)
 	self.monitorTimer = runtime.timer.new(0.25, function()
 		self:focusPointerMonitor()
 	end)
+	if options.windowFocusFollowsMouse then
+		self.hoverFocus = ControllerModule.newHoverFocus(options, runtime, function()
+			return not self.running
+				or self.swipeActive
+				or self.blockMomentum
+				or self.activeCommand ~= nil
+				or #self.queue > 0
+		end, function(message)
+			self:recordError(message)
+		end)
+	end
 	self.wakeWatcher = runtime.caffeinate.watcher.new(function(event)
 		self:handleSleepWake(event)
 	end)
@@ -220,9 +346,15 @@ function Controller:handleSleepWake(event)
 	self.recognizer:reset()
 	self.lastScreen = nil
 	self.monitorTimer:stop()
+	if self.hoverFocus then
+		self.hoverFocus:stop()
+	end
 	if self.running and waking then
 		self.gestureTap:start()
 		self.scrollTap:start()
+		if self.hoverFocus then
+			self.hoverFocus:start()
+		end
 		if self.options.focusFollowsMouse then
 			self.monitorTimer:start()
 		end
@@ -247,6 +379,9 @@ function Controller:releaseInput(keepMomentum)
 end
 
 function Controller:cancelCommands()
+	if self.hoverFocus then
+		self.hoverFocus:cancel()
+	end
 	self.queue = {}
 	self.dispatchScheduled = false
 	self.dispatchTimer:stop()
@@ -308,6 +443,9 @@ end
 function Controller:queueCommand(request)
 	if not self.running then
 		return
+	end
+	if self.hoverFocus then
+		self.hoverFocus:cancel()
 	end
 	for i = #self.queue, 1, -1 do
 		if self.queue[i].kind == "pointer" then
@@ -395,6 +533,9 @@ function Controller:start()
 	self.lastScreen = self.runtime.mouse.getCurrentScreen()
 	self.gestureTap:start()
 	self.scrollTap:start()
+	if self.hoverFocus then
+		self.hoverFocus:start()
+	end
 	if self.options.focusFollowsMouse then
 		self.monitorTimer:start()
 	end
@@ -410,6 +551,9 @@ function Controller:stop()
 	self.recognizer:reset()
 	self.gestureTap:stop()
 	self.scrollTap:stop()
+	if self.hoverFocus then
+		self.hoverFocus:stop()
+	end
 	self.monitorTimer:stop()
 	self.wakeWatcher:stop()
 	return self
@@ -427,6 +571,7 @@ function Controller:status()
 		gestureTapEnabled = self.gestureTap:isEnabled(),
 		scrollTapEnabled = self.scrollTap:isEnabled(),
 		pointerTapEnabled = self.pointerTap:isEnabled(),
+		hoverTapEnabled = self.hoverFocus ~= nil and self.hoverFocus:isEnabled(),
 		commandBusy = self.activeCommand ~= nil,
 		queuedCommands = #self.queue,
 		recognized = self.recognized,
@@ -450,6 +595,7 @@ local Spoon = {
 	touchTimeout = 0.5,
 	commandTimeout = 1,
 	focusFollowsMouse = false,
+	windowFocusFollowsMouse = false,
 	_controllerModule = ControllerModule, -- Internal constructors for local tests.
 	_hotkeys = {},
 	_mapping = {},
@@ -527,7 +673,11 @@ function Spoon:start()
 		return self
 	end
 	self:init()
-	local options = { logger = self.logger, focusFollowsMouse = self.focusFollowsMouse }
+	local options = {
+		logger = self.logger,
+		focusFollowsMouse = self.focusFollowsMouse,
+		windowFocusFollowsMouse = self.windowFocusFollowsMouse,
+	}
 	local function fail(message)
 		self._startError = message
 		self.logger:w(message)
@@ -543,6 +693,9 @@ function Spoon:start()
 	if type(options.focusFollowsMouse) ~= "boolean" then
 		return fail("focusFollowsMouse must be a boolean")
 	end
+	if type(options.windowFocusFollowsMouse) ~= "boolean" then
+		return fail("windowFocusFollowsMouse must be a boolean")
+	end
 	local path, err = findAeroSpace(self.aerospacePath)
 	if not path then
 		return fail(err)
@@ -550,7 +703,11 @@ function Spoon:start()
 	options.aerospacePath = path
 	local controller = ControllerModule.new(options, hs):start()
 	local state = controller:status()
-	if not state.gestureTapEnabled or not state.scrollTapEnabled then
+	if
+		not state.gestureTapEnabled
+		or not state.scrollTapEnabled
+		or (options.windowFocusFollowsMouse and not state.hoverTapEnabled)
+	then
 		controller:stop()
 		return fail("Unable to start input listeners; check Hammerspoon Accessibility permission")
 	end
@@ -583,6 +740,7 @@ function Spoon:status()
 			gestureTapEnabled = false,
 			scrollTapEnabled = false,
 			pointerTapEnabled = false,
+			hoverTapEnabled = false,
 			commandBusy = false,
 			queuedCommands = 0,
 			recognized = 0,

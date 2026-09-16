@@ -54,6 +54,24 @@ Set before starting; apply later changes with `:stop():start()`.
 | `touchTimeout` | `0.5` | Seconds without touch updates before blocking expires. |
 | `commandTimeout` | `1` | CLI timeout in seconds; expiry discards queued commands. |
 | `focusFollowsMouse` | `false` | Focus monitors on pointer crossings, polled every 250 ms. |
+| `windowFocusFollowsMouse` | `false` | Focus the window under the pointer within the focused workspace, checking at most every 100 ms while moving. |
+
+Enable both options in your `andUse()` configuration for monitor and window focus:
+
+```lua
+config = {
+    focusFollowsMouse = true,
+    windowFocusFollowsMouse = true,
+},
+```
+
+Keep AeroSpace's `focus-follows-mouse.enabled = false` when using these options.
+Window hover pauses during swipes, scroll momentum, mouse-button presses, and
+queued or active monitor/workspace commands. It only considers windows on the
+focused workspace and never focuses through a covering window or dialog.
+`windowFocusFollowsMouse` does not enable monitor crossings by itself.
+Hover queries use `aerospacePath` and `commandTimeout`; failures appear in `errors`
+and `lastError`. Sleep and stop cancel pending hover work; wake restores it.
 
 Swipes always target the pointer's display. Movement accumulates across stationary
 samples; resting palms do not qualify. Input blocking starts only after recognition.
@@ -66,7 +84,7 @@ Workspace ordering comes from AeroSpace. No native transition animation.
 - `stop()` stops listeners/timers, deletes hotkeys, and cancels pending commands.
 - `focusMonitor(direction)` queues `left`, `right`, `up`, or `down`; requires a running Spoon.
 - `bindHotkeys(mapping)` replaces monitor bindings; `{}` clears them.
-- `status()` returns listener state, counters, command timings, and the last error.
+- `status()` returns listener state (including `hoverTapEnabled`), counters, command timings, and the last error.
 
 Loading is inactive. Start/stop are idempotent. Hotkeys configured while stopped
 activate on start. Use `logger:setLogLevel(...)` after initialization to change logging.
@@ -102,5 +120,7 @@ survive stop and reset on the next start. `lastError` includes startup failures.
 The isolated tests use fake input, timers, and tasks. Check physical swipes on both
 displays, after pointer crossings and sleep/wake, plus browser history, two-finger
 scrolling with resting palms, and three-finger dragging.
+With window hover enabled, also check continuous pointer movement between tiled
+windows, workspace boundaries, and cancellation when a swipe begins.
 
 Code and tests are MIT-licensed.
