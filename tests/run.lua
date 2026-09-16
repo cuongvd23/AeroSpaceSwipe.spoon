@@ -161,16 +161,23 @@ end)
 local function fixture(noStart)
 	local f = { time = 0, tasks = {}, timers = {}, taps = {}, failStart = false, failNew = false }
 	f.screenA = {
+		fullFrame = function()
+			return { x = 0, y = 0, w = 200, h = 100 }
+		end,
 		name = function()
 			return "Built-in Retina Display"
 		end,
 	}
 	f.screenB = {
+		fullFrame = function()
+			return { x = 0, y = -100, w = 200, h = 100 }
+		end,
 		name = function()
 			return "LG HDR 4K"
 		end,
 	}
 	f.screen = f.screenA
+	f.screens, f.pointerWrites = { f.screenA, f.screenB }, {}
 	local function timer(delay, callback, repeats)
 		local t = { delay = delay, callback = callback, repeats = repeats }
 		function t:start()
@@ -206,8 +213,26 @@ local function fixture(noStart)
 			end,
 		},
 		mouse = {
+			absolutePosition = function(point)
+				if point then
+					f.pointer = { x = point.x, y = point.y }
+					f.pointerWrites[#f.pointerWrites + 1] = f.pointer
+					for _, screen in ipairs(f.screens) do
+						local r = screen:fullFrame()
+						if point.x >= r.x and point.x < r.x + r.w and point.y >= r.y and point.y < r.y + r.h then
+							f.screen = screen
+						end
+					end
+				end
+				return f.pointer or { x = 50, y = f.screen == f.screenB and -50 or 50 }
+			end,
 			getCurrentScreen = function()
 				return f.screen
+			end,
+		},
+		screen = {
+			allScreens = function()
+				return f.screens
 			end,
 		},
 		logger = {
@@ -469,6 +494,7 @@ test("display is captured before dispatch and both directions map correctly", fu
 	equal(f.tasks[1].args[1], "eval")
 	equal(f.tasks[1].args[2], 'focus-monitor "^LG HDR 4K$" && workspace --no-stdin --wrap-around next')
 	f:finish(1)
+	f.screen, f.pointer = f.screenA, nil -- An intentional crossing after the first swipe finishes.
 	f:swipe(0.52)
 	f:advance(0)
 	equal(f.tasks[2].args[2], 'focus-monitor "^Built-in Retina Display$" && workspace --no-stdin --wrap-around prev')
@@ -483,6 +509,75 @@ test("display regex and expression metacharacters are escaped", function()
 	f:swipe()
 	f:advance(0)
 	equal(f.tasks[1].args[2], 'focus-monitor "^A\\\\.\\\\(B\\\\) \\"C\\"$" && workspace --no-stdin --wrap-around next')
+end)
+test("swipe cursor warps are restored before monitor polling resumes", function()
+	local f, c = fixture()
+	f.screen = f.screenB
+	f.pointer = { x = 80, y = -60 }
+	f:swipe()
+	f:advance(0)
+	f:release()
+	f.screen, f.pointer = f.screenA, { x = 1, y = 60 }
+	f:finish(1)
+	equal(f.screen, f.screenB)
+	equal(f.pointer.x, 80)
+	equal(f.pointer.y, -60)
+	c.monitorTimer.callback()
+	f:advance(0)
+	equal(#f.tasks, 1)
+	equal(c:status().switched, 1)
+end)
+test("swipes do not move a pointer that remains on the source display", function()
+	local f = fixture()
+	f:swipe()
+	f:advance(0)
+	f:finish(1)
+	equal(#f.pointerWrites, 0)
+end)
+test("a disconnected swipe display is never targeted by cursor restoration", function()
+	local f = fixture()
+	f.screen = f.screenB
+	f:swipe()
+	f:advance(0)
+	f.screen, f.screens = f.screenA, { f.screenA }
+	f:finish(1)
+	equal(#f.pointerWrites, 0)
+end)
+test("cursor restoration uses the current frame if the source display moved", function()
+	local f = fixture()
+	f.screen = f.screenB
+	f:swipe()
+	f:advance(0)
+	f.screen = f.screenA
+	f.screenB.fullFrame = function()
+		return { x = 400, y = -100, w = 200, h = 100 }
+	end
+	f:finish(1)
+	equal(f.screen, f.screenB)
+	equal(f.pointer.x, 500)
+	equal(f.pointer.y, -50)
+end)
+test("failed and cancelled swipes do not restore an old cursor position", function()
+	for _, cancel in ipairs({ false, true }) do
+		local f, c = fixture()
+		f.screen = f.screenB
+		f:swipe()
+		f:advance(0)
+		f.screen = f.screenA
+		if cancel then
+			c:stop()
+		end
+		f:finish(1, cancel and 0 or 1)
+		equal(#f.pointerWrites, 0)
+	end
+end)
+test("keyboard monitor commands retain their own cursor behavior", function()
+	local f, c = fixture()
+	c:focusMonitor("up")
+	f:advance(0)
+	f.screen = f.screenB
+	f:finish(1)
+	equal(#f.pointerWrites, 0)
 end)
 test("keyboard focus and rapid swipes execute in order", function()
 	local f, c = fixture()

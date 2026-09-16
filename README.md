@@ -76,6 +76,9 @@ and `lastError`. Sleep and stop cancel pending hover work; wake restores it.
 Swipes always target the pointer's display. Movement accumulates across stationary
 samples; resting palms do not qualify. Input blocking starts only after recognition.
 Workspace ordering comes from AeroSpace. No native transition animation.
+If an AeroSpace focus callback moves the pointer to another display during a
+successful swipe, the Spoon restores its starting position on the swipe's display
+before monitor-following resumes. Disconnected displays are never targeted.
 
 ## API
 

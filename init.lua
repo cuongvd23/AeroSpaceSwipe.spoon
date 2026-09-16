@@ -410,6 +410,25 @@ function Controller:completeCommand(request, code, stderr)
 	if code == 0 then
 		if request.kind == "swipe" then
 			self.switched = self.switched + 1
+			-- AeroSpace focus callbacks can warp the pointer despite the event tap.
+			-- Restore it before monitor polling mistakes the warp for user input.
+			if self.runtime.mouse.getCurrentScreen() ~= request.screen then
+				for _, screen in ipairs(self.runtime.screen.allScreens()) do
+					if screen == request.screen then
+						local point, frame = request.pointer, screen:fullFrame()
+						if
+							point.x < frame.x
+							or point.x >= frame.x + frame.w
+							or point.y < frame.y
+							or point.y >= frame.y + frame.h
+						then
+							point = { x = frame.x + frame.w / 2, y = frame.y + frame.h / 2 }
+						end
+						self.runtime.mouse.absolutePosition(point)
+						break
+					end
+				end
+			end
 		end
 		self.lastScreen = request.screen or self.runtime.mouse.getCurrentScreen()
 	else
@@ -488,7 +507,13 @@ function Controller:handleTouches(touches)
 			.. quoteArgument(displayPattern(screen:name()))
 			.. " && workspace --no-stdin --wrap-around "
 			.. (direction == "left" and "next" or "prev")
-		self:queueCommand({ kind = "swipe", screen = screen, args = { "eval", expression } })
+		local pointer = self.runtime.mouse.absolutePosition()
+		self:queueCommand({
+			kind = "swipe",
+			screen = screen,
+			pointer = { x = pointer.x, y = pointer.y },
+			args = { "eval", expression },
+		})
 	end
 	if touches and self.swipeActive then
 		self.touchTimeout:start()
