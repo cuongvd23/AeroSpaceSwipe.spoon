@@ -199,6 +199,18 @@ local function fixture(noStart)
 	local props =
 		{ scrollWheelEventMomentumPhase = 1, scrollWheelEventScrollPhase = 2, scrollWheelEventIsContinuous = 3 }
 	local runtime = {
+		window = {
+			focusedWindow = function()
+				return {
+					isStandard = function()
+						return true
+					end,
+				}
+			end,
+			list = function()
+				return f.overlays or {}
+			end,
+		},
 		timer = {
 			absoluteTime = function()
 				return f.time * 1e9
@@ -241,6 +253,9 @@ local function fixture(noStart)
 			end,
 		},
 		eventtap = {
+			checkMouseButtons = function()
+				return f.buttons or {}
+			end,
 			event = { types = types, properties = props },
 			new = function(events, callback)
 				local tap = { callback = callback, enabled = false }
@@ -596,6 +611,68 @@ test("keyboard focus and rapid swipes execute in order", function()
 	f:finish(3)
 	equal(c:status().switched, 2)
 end)
+test("open menus suspend monitor crossing until dismissed", function()
+	local f, c = fixture()
+	f.screen = f.screenB
+	f.overlays =
+		{ { kCGWindowLayer = 101, kCGWindowAlpha = 1, kCGWindowBounds = { X = 0, Y = 0, Width = 20, Height = 20 } } }
+	c.monitorTimer.callback()
+	equal(c:status().queuedCommands, 0)
+	f.overlays = {}
+	c.monitorTimer.callback()
+	equal(c:status().queuedCommands, 1)
+end)
+test("menus opened before dispatch discard pending automatic monitor focus", function()
+	local f, c = fixture()
+	f.screen = f.screenB
+	c.monitorTimer.callback()
+	f.overlays =
+		{ { kCGWindowLayer = 101, kCGWindowAlpha = 1, kCGWindowBounds = { X = 0, Y = 0, Width = 20, Height = 20 } } }
+	f:advance(0)
+	equal(#f.tasks, 0)
+	c:focusMonitor("up")
+	f:advance(0)
+	equal(#f.tasks, 1)
+end)
+test("returning across a boundary before dispatch discards stale focus", function()
+	local f, c = fixture()
+	f.screen = f.screenB
+	c.monitorTimer.callback()
+	f.screen = f.screenA
+	f:advance(0)
+	equal(#f.tasks, 0)
+	equal(#f.pointerWrites, 0)
+end)
+test("automatic monitor focus never writes the mouse position", function()
+	local f, c = fixture()
+	f.screen = f.screenB
+	c.monitorTimer.callback()
+	f:advance(0)
+	assert(f.tasks[1].args[2]:find("test-not %{window-layout} = floating", 1, true))
+	assert(not f.tasks[1].args[2]:find("move-mouse", 1, true))
+	f:finish(1)
+	equal(#f.pointerWrites, 0)
+end)
+test("floating monitor guard is a normal refusal and keyboard focus still works", function()
+	local f, c = fixture()
+	f.screen = f.screenB
+	c.monitorTimer.callback()
+	f:advance(0)
+	f.tasks[1].callback(1, "", "")
+	equal(c:status().errors, 0)
+	equal(c.lastScreen, f.screenA)
+	c:focusMonitor("up")
+	f:advance(0)
+	assert(f.tasks[2].args[2]:find("move-mouse", 1, true))
+end)
+test("dragging across screens does not change monitor focus", function()
+	local f, c = fixture()
+	f.screen = f.screenB
+	f.buttons = { left = true }
+	c.monitorTimer.callback()
+	f:advance(0)
+	equal(#f.tasks, 0)
+end)
 test("new focus intent coalesces pending pointer requests", function()
 	local f, c = fixture()
 	f.screen = f.screenB
@@ -619,9 +696,9 @@ test("polling pauses during swipe and resyncs after pointer moves again", functi
 	f:advance(0.2)
 	equal(#f.tasks, 1)
 	f.screen = f.screenA
-	f:advance(0.25)
+	f:advance(0.6)
 	equal(#f.tasks, 2)
-	equal(f.tasks[2].args[2], "^Built-in Retina Display$")
+	equal(f.tasks[2].args[2], 'test-not %{window-layout} = floating && focus-monitor "^Built-in Retina Display$"')
 	equal(c:status().errors, 0)
 end)
 test("command failures release blocking and discard pending requests", function()
@@ -921,7 +998,7 @@ test("pointer focus can be enabled explicitly", function()
 	s:start()
 	f.screen = f.screenB
 	f:advance(0.3)
-	equal(f.tasks[1].args[1], "focus-monitor")
+	equal(f.tasks[1].args[1], "eval")
 end)
 
 test("hotkeys are opt-in, inert before start, and share command serialization", function()
@@ -934,7 +1011,7 @@ test("hotkeys are opt-in, inert before start, and share command serialization", 
 	equal(f.hotkeys[1].message, "Focus up")
 	f.hotkeys[1].callback()
 	f:advance(0)
-	equal(f.tasks[1].args[2], "up")
+	equal(f.tasks[1].args[2], "focus-monitor up && move-mouse window-lazy-center || move-mouse monitor-lazy-center")
 	f:swipe()
 	f:advance(0)
 	equal(#f.tasks, 1)
@@ -993,7 +1070,7 @@ test("public focusMonitor rejects invalid directions and calls while stopped", f
 	equal(s:focusMonitor("elsewhere"), nil)
 	equal(s:focusMonitor("down"), s)
 	f:advance(0)
-	equal(f.tasks[1].args[2], "down")
+	equal(f.tasks[1].args[2], "focus-monitor down && move-mouse window-lazy-center || move-mouse monitor-lazy-center")
 end)
 
 test("status retains an isolated snapshot after stop and resets on the next run", function()
@@ -1052,6 +1129,9 @@ local function windowFocusFixture()
 		return {}
 	end
 	f.runtime.window = {
+		list = function()
+			return f.overlays or {}
+		end,
 		focusedWindow = function()
 			return f.windows[f.focused]
 		end,
@@ -1079,6 +1159,24 @@ test("window hover is opt-in and rejects non-boolean settings before startup", f
 	equal(s:status().hoverTapEnabled, false)
 end)
 
+test("monitor crossing rechecks the hovered window without another mouse event", function()
+	local f, s = windowFocusFixture()
+	local c = s._controller
+	f.screenB.frame = f.screenA.frame
+	f.screen = f.screenB
+	f.windows[1].screen = function()
+		return f.screenB
+	end
+	c:focusPointerMonitor()
+	f:advance(0)
+	f:finish(1)
+	f:advance(0.1)
+	equal(#f.tasks, 2)
+	equal(f.tasks[2].args[1], "list-windows")
+	f:finish(2, 0, "1 h_tiles\n2 h_tiles\n")
+	equal(f.focused, 2)
+	equal(#f.pointerWrites, 0)
+end)
 test("window hover works without monitor focus enabled", function()
 	local f, s = windowFocusFixture()
 	equal(s.focusFollowsMouse, false)
@@ -1086,7 +1184,7 @@ test("window hover works without monitor focus enabled", function()
 	f:move()
 	f:advance(0.1)
 	equal(f.tasks[1].args[1], "list-windows")
-	f:finish(1, 0, "1\n2\n")
+	f:finish(1, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 2)
 end)
 
@@ -1096,10 +1194,10 @@ test("monitor commands immediately cancel window hover queries", function()
 	f:advance(0.1)
 	s:focusMonitor("right")
 	equal(f.tasks[1].terminated, true)
-	f:finish(1, 0, "1\n2\n")
+	f:finish(1, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 1)
 	f:advance(0)
-	equal(f.tasks[2].args[1], "focus-monitor")
+	equal(f.tasks[2].args[1], "eval")
 end)
 
 test("swipes cancel hover before dispatch and suppress it through momentum", function()
@@ -1108,7 +1206,7 @@ test("swipes cancel hover before dispatch and suppress it through momentum", fun
 	f:advance(0.1)
 	f:swipe()
 	equal(f.tasks[1].terminated, true)
-	f:finish(1, 0, "1\n2\n")
+	f:finish(1, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 1)
 	f:advance(0)
 	equal(f.tasks[2].args[1], "eval")
@@ -1120,7 +1218,7 @@ test("swipes cancel hover before dispatch and suppress it through momentum", fun
 	f:advance(0.5)
 	f:move()
 	f:advance(0.1)
-	f:finish(3, 0, "1\n2\n")
+	f:finish(3, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 2)
 	equal(s:status().errors, 0)
 end)
@@ -1132,13 +1230,13 @@ test("sleep cancels hover and wake restores it", function()
 	f.wake(1)
 	equal(s:status().hoverTapEnabled, false)
 	equal(f.tasks[1].terminated, true)
-	f:finish(1, 0, "1\n2\n")
+	f:finish(1, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 1)
 	f.wake(4)
 	equal(s:status().hoverTapEnabled, true)
 	f:move()
 	f:advance(0.1)
-	f:finish(2, 0, "1\n2\n")
+	f:finish(2, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 2)
 end)
 
@@ -1152,7 +1250,7 @@ test("stop cleans hover resources and restart applies the option", function()
 	for _, timer in ipairs(f.timers) do
 		equal(timer.due, nil)
 	end
-	f:finish(1, 0, "1\n2\n")
+	f:finish(1, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 1)
 	s.windowFocusFollowsMouse = false
 	s:start()
@@ -1162,7 +1260,7 @@ test("stop cleans hover resources and restart applies the option", function()
 	equal(s:status().hoverTapEnabled, true)
 	f:move()
 	f:advance(0.1)
-	f:finish(2, 0, "1\n2\n")
+	f:finish(2, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 2)
 end)
 
@@ -1175,9 +1273,9 @@ test("hover failures use Spoon diagnostics and recover after timeout", function(
 	assert(s:status().lastError:find("Hover query timed out", 1, true))
 	f:move()
 	f:advance(0.1)
-	f:finish(1, 0, "1\n2\n")
+	f:finish(1, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 1)
-	f:finish(2, 0, "1\n2\n")
+	f:finish(2, 0, "1 h_tiles\n2 h_tiles\n")
 	equal(f.focused, 2)
 end)
 

@@ -119,6 +119,41 @@ local function oneShot(timers, delay, callback)
 	}
 end
 
+-- Accessibility window lists omit native menus and some status-item popovers.
+-- Consult the Window Server before automatic focus can dismiss those surfaces.
+local function pointerFocusBlocked(runtime)
+	local focused = runtime.window.focusedWindow()
+	if focused and not focused:isStandard() then
+		return true -- Dialogs and sheets retain focus until explicitly dismissed.
+	end
+	local point = runtime.mouse.absolutePosition()
+	local windows = runtime.window.list(true)
+	if not windows then
+		return true
+	end
+	for _, window in ipairs(windows) do
+		local frame, layer = window.kCGWindowBounds, window.kCGWindowLayer or 0
+		if window.kCGWindowIsOnscreen ~= false and (window.kCGWindowAlpha or 1) > 0 and frame then
+			if frame.Width > 0 and frame.Height > 0 then
+				-- kCGPopUpMenuWindowLevel: pause even between a menu and its submenu.
+				if layer == 101 then
+					return true
+				end
+				if
+					layer > 0
+					and point.x >= frame.X
+					and point.x < frame.X + frame.Width
+					and point.y >= frame.Y
+					and point.y < frame.Y + frame.Height
+				then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 -- Construct without starting so the controller owns the entire listener lifecycle.
 function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
 	local generation, task, active, pending = 0, nil, false, false
@@ -128,7 +163,7 @@ function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
 	end
 	local timer = oneShot(runtime.timer, 0.1, function()
 		pending = false
-		if blocked() then
+		if blocked() or pointerFocusBlocked(runtime) then
 			return
 		end
 		local focused = runtime.window.focusedWindow()
@@ -153,6 +188,7 @@ function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
 			local pointerScreen = runtime.mouse.getCurrentScreen()
 			if
 				blocked()
+				or pointerFocusBlocked(runtime)
 				or not current
 				or current:id() ~= focusedID
 				or not pointerScreen
@@ -161,8 +197,11 @@ function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
 				return
 			end
 			local allowed = {}
-			for id in output:gmatch("%d+") do
-				allowed[tonumber(id)] = true
+			for id, layout in output:gmatch("(%d+)%s+(%S+)") do
+				allowed[tonumber(id)] = layout
+			end
+			if not allowed[focusedID] or allowed[focusedID] == "floating" then
+				return -- Settings, floating tools, and unmanaged popups keep focus.
 			end
 			local function contains(frame)
 				return point.x >= frame.x
@@ -181,7 +220,7 @@ function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
 					return -- Never focus through a covering window or dialog.
 				end
 			end
-		end, { "list-windows", "--workspace", "focused", "--format", "%{window-id}" })
+		end, { "list-windows", "--workspace", "focused", "--format", "%{window-id} %{window-layout}" })
 		if not task or not task:start() then
 			task = nil
 			onError("Unable to start hover query")
@@ -205,7 +244,7 @@ function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
 		cancel()
 		onError("Hover query timed out")
 	end)
-	local tap = runtime.eventtap.new({ runtime.eventtap.event.types.mouseMoved }, function()
+	local function requestFocus()
 		if blocked() then
 			cancel()
 		elseif not task and not pending then
@@ -214,8 +253,10 @@ function ControllerModule.newHoverFocus(options, runtime, isBlocked, onError)
 			timer:start()
 		end
 		return false
-	end)
+	end
+	local tap = runtime.eventtap.new({ runtime.eventtap.event.types.mouseMoved }, requestFocus)
 	return {
+		request = requestFocus,
 		start = function(self)
 			active = true
 			tap:start()
@@ -316,15 +357,25 @@ function Controller:scheduleCommand()
 end
 
 function Controller:focusPointerMonitor()
-	if self.swipeActive or self.activeCommand or #self.queue > 0 then
+	if
+		self.swipeActive
+		or self.blockMomentum
+		or self.activeCommand
+		or #self.queue > 0
+		or next(self.runtime.eventtap.checkMouseButtons()) ~= nil
+	then
 		return
 	end
 	local screen = self.runtime.mouse.getCurrentScreen()
-	if screen and screen ~= self.lastScreen then
+	if screen and screen ~= self.lastScreen and not pointerFocusBlocked(self.runtime) then
 		self:queueCommand({
 			kind = "pointer",
 			screen = screen,
-			args = { "focus-monitor", displayPattern(screen:name()) },
+			args = {
+				"eval",
+				"test-not %{window-layout} = floating && focus-monitor "
+					.. quoteArgument(displayPattern(screen:name())),
+			},
 		})
 	end
 end
@@ -407,6 +458,11 @@ function Controller:completeCommand(request, code, stderr)
 	if #self.durations > 20 then
 		table.remove(self.durations, 1)
 	end
+	if request.kind == "pointer" and code == 1 and (stderr or "") == "" then
+		-- A floating window rejected automatic focus; retry only on later polling.
+		self:scheduleCommand()
+		return
+	end
 	if code == 0 then
 		if request.kind == "swipe" then
 			self.switched = self.switched + 1
@@ -431,6 +487,9 @@ function Controller:completeCommand(request, code, stderr)
 			end
 		end
 		self.lastScreen = request.screen or self.runtime.mouse.getCurrentScreen()
+		if request.kind == "pointer" and self.hoverFocus then
+			self.hoverFocus:request() -- Select the window under the pointer after crossing.
+		end
 	else
 		self:recordError("AeroSpace " .. request.kind .. " failed (" .. tostring(code) .. "): " .. (stderr or ""))
 		self.queue = {}
@@ -447,6 +506,17 @@ function Controller:runNextCommand()
 		return
 	end
 	local request = table.remove(self.queue, 1)
+	if
+		request.kind == "pointer"
+		and (
+			pointerFocusBlocked(self.runtime)
+			or self.runtime.mouse.getCurrentScreen() ~= request.screen
+			or next(self.runtime.eventtap.checkMouseButtons()) ~= nil
+		)
+	then
+		self:scheduleCommand()
+		return
+	end
 	request.started = self:now()
 	self.activeCommand = request
 	request.task = self.runtime.task.new(self.options.aerospacePath, function(code, _, stderr)
@@ -476,7 +546,13 @@ function Controller:queueCommand(request)
 end
 
 function Controller:focusMonitor(direction)
-	self:queueCommand({ kind = "keyboard", args = { "focus-monitor", direction } })
+	self:queueCommand({
+		kind = "keyboard",
+		args = {
+			"eval",
+			"focus-monitor " .. direction .. " && move-mouse window-lazy-center || move-mouse monitor-lazy-center",
+		},
+	})
 end
 
 function Controller:handleTouches(touches)

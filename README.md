@@ -70,6 +70,16 @@ Window hover pauses during swipes, scroll momentum, mouse-button presses, and
 queued or active monitor/workspace commands. It only considers windows on the
 focused workspace and never focuses through a covering window or dialog.
 `windowFocusFollowsMouse` does not enable monitor crossings by itself.
+Automatic monitor and window focus pause while native popup menus are open and
+when the pointer is over an elevated surface such as a status-item popover.
+Floating windows, settings, and dialogs retain focus until you close them or
+explicitly focus another window. Native menu dismissal resumes normal hover.
+Disable AeroSpace's `on-focus-changed` and `on-focused-monitor-changed` mouse-warp
+callbacks when using hover focus. Put `move-mouse window-lazy-center` (with a
+`monitor-lazy-center` fallback) in keyboard navigation bindings instead.
+The Spoon's keyboard monitor shortcuts move the pointer explicitly. Mouse-driven
+monitor crossings leave the pointer in place, reject stale crossing requests,
+and then check the window under the pointer.
 Hover queries use `aerospacePath` and `commandTimeout`; failures appear in `errors`
 and `lastError`. Sleep and stop cancel pending hover work; wake restores it.
 
